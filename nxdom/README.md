@@ -16,6 +16,8 @@ Dua file build system:
 - **`config.w32`** — build Windows (`nmake`), toolset MSVC (target server rujukan: v142/VS16).
 - **`config.m4`** — build Linux/Unix (`phpize && ./configure && make`) — dipakai untuk build & uji di WSL (Ubuntu, aaPanel PHP 8.3), lihat `Plan_02.md` §9.6.
 
+> **Build `.dll` untuk PHP VS16/v142**: BuildTools 2022 **tidak** menyediakan v142 (installer: "Cannot find package ... in product graph"). Perlu VS2019 lengkap, VS2022 penuh (via GUI), atau runner `windows-2019`. **Selalu verifikasi folder `VC\Tools\MSVC\14.2*` ada** sebelum build — kalau tidak, `nmake` memakai v143 dan `.dll` gagal di-load PHP VS16. Lihat `install.md` Langkah 1 (bagian "PENTING").
+
 ## `_archive-php-package/`
 
 Arsip implementasi **PHP package** (M0-M7, sebelum keputusan beralih ke native C extension — lihat `Plan.md` Bagian 0/0B untuk riwayat kenapa). Berisi `Kernel.php`/`Router.php`/`Database.php`/`Auth.php`/dll versi PHP murni, `bootstrap.php` (untuk `auto_prepend_file`), `router.php` (untuk `php -S`), `front.php` (versi awal front controller sebelum jadi `index.php`).

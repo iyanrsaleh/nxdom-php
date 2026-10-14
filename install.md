@@ -34,6 +34,31 @@ PHP Extension Build  : API20210902,TS,VS16
 
 > **Riwayat**: mesin ini sudah punya "Visual Studio Build Tools 2026" (produk versi 18) tapi hanya toolset v143 (`cl` 19.51) — tidak cocok VS16. Menambahkan komponen v142 lewat Modify menyelesaikannya (`cl` jadi 19.29, cocok).
 
+### PENTING — BuildTools 2022 (produk 17.x) TIDAK menyediakan v142 lewat command-line
+
+Ditemukan lewat pengujian nyata (sesi 2026-10-14): pada **BuildTools 2022**, mencoba memasang v142 lewat command-line **GAGAL diam-diam meski `ExitCode=0`**:
+
+```
+setup.exe modify --installPath "<VS path>" --add Microsoft.VisualStudio.Component.VC.v142.x86.x64 --quiet --norestart
+```
+
+Log installer (`dd_setup_*.log`) berisi:
+```
+Warning: Cannot find package: Microsoft.VisualStudio.Component.VC.v142.x86.x64 in product graph.
+```
+
+Artinya komponen v142 **tidak ada di katalog channel** BuildTools 2022 ini — bukan soal ID salah. Verifikasi sesudahnya: folder `VC\Tools\MSVC\` tetap hanya berisi `14.44` (v143), tidak ada `14.2x`.
+
+**Solusi untuk target PHP VS16/v142, pilih salah satu:**
+
+- **A. Install Visual Studio 2019 lengkap** (punya v142 native) di mesin build, lalu ikuti Langkah 2 seterusnya dengan `vcvarsall.bat x64 -vcvars_ver=14.29`. Ini jalur paling pasti.
+- **B. Install Visual Studio 2022 (bukan sekadar BuildTools)** — produk 2022 penuh kadang menyertakan komponen v142 di Individual components; centang lewat **GUI** (bukan `--add` headless) dan verifikasi folder `14.2x` benar-benar terbentuk sebelum lanjut.
+- **C. Build di runner CI `windows-2019`** (punya v142) — cocok kalau tidak mau memasang VS2019 lokal.
+
+**Jangan asumsikan `ExitCode=0` berarti komponen terpasang** — SELALU verifikasi folder `VC\Tools\MSVC\14.2*` ada sebelum melanjutkan build. Kalau tidak ada, `nmake` akan memakai v143 dan `.dll` hasilnya **tidak akan bisa di-load** oleh PHP VS16 (`linked with 14.4x, but the core is linked with 14.29`).
+
+> **Catatan sesi ini**: mesin dev yang dipakai terakhir HANYA punya v143 (BuildTools 2022), dan v142 tidak bisa ditambahkan lewat CLI. Karena itu `.dll` di rilis `v0.0.x` **belum dikonfirmasi** cocok untuk PHP VS16/v142 — pengguna dengan PHP VS16 perlu build sendiri lewat salah satu jalur A/B/C di atas. `nxdom.so` (Linux, PHP 8.3 NTS) sudah terbukti termuat & berfungsi.
+
 ## Langkah 2 — PHP SDK
 
 1. Clone ke path **pendek, dekat drive root, tanpa spasi** (wiki resmi PHP mewanti-wanti path panjang/berspasi bisa gagal build):
