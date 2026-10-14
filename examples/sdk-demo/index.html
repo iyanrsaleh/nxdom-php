@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NxDom SDK Demo</title>
+<style>
+  :root { --bg:#0f1115; --card:#1a1d24; --fg:#e6e8ec; --mut:#9aa3b2; --acc:#6ea8fe; --ok:#2fbf71; --err:#e5534b; }
+  * { box-sizing:border-box; }
+  body { margin:0; font:15px/1.6 system-ui,Segoe UI,Roboto,sans-serif; background:var(--bg); color:var(--fg); }
+  header { padding:20px; border-bottom:1px solid #262a33; }
+  h1 { margin:0 0 2px; font-size:19px; }
+  header p { margin:0; color:var(--mut); font-size:13px; }
+  main { max-width:820px; margin:0 auto; padding:18px; display:grid; gap:14px; }
+  .card { background:var(--card); border:1px solid #262a33; border-radius:12px; padding:16px; }
+  .card h2 { margin:0 0 10px; font-size:15px; color:var(--acc); }
+  .row { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+  button { background:var(--acc); color:#0b1020; border:0; border-radius:8px; padding:8px 12px; font-weight:600; cursor:pointer; }
+  button.ghost { background:#232733; color:var(--fg); }
+  input { background:#11141a; border:1px solid #2b303b; color:var(--fg); border-radius:8px; padding:8px; }
+  table { width:100%; border-collapse:collapse; margin-top:8px; }
+  th,td { text-align:left; padding:6px 8px; border-bottom:1px solid #262a33; font-size:14px; }
+  pre { background:#0b0e13; border:1px solid #22262f; border-radius:8px; padding:12px; overflow:auto; font-size:12.5px; margin:10px 0 0; }
+  .ok { color:var(--ok); } .err { color:var(--err); }
+</style>
+</head>
+<body>
+<header>
+  <h1>NxDom SDK Demo</h1>
+  <p>Aplikasi murni HTML + JS memakai SDK <code>@nxdom/client</code> — tanpa PHP di webroot.</p>
+</header>
+<main>
+  <div class="card">
+    <h2>1. products (list)</h2>
+    <div class="row">
+      <button onclick="loadProducts()">Muat products</button>
+      <span id="prodMsg"></span>
+    </div>
+    <div id="prodTable"></div>
+  </div>
+
+  <div class="card">
+    <h2>2. Tambah produk (create)</h2>
+    <div class="row">
+      <input id="pName" placeholder="nama" style="width:180px">
+      <input id="pPrice" type="number" placeholder="harga" style="width:120px">
+      <button onclick="addProduct()">Simpan</button>
+      <span id="addMsg"></span>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>3. Cari by id (find)</h2>
+    <div class="row">
+      <input id="pId" type="number" value="1" style="width:80px">
+      <button class="ghost" onclick="findProduct()">Cari</button>
+      <span id="findMsg"></span>
+    </div>
+    <pre id="findOut">($belum dipanggil)</pre>
+  </div>
+
+  <div class="card">
+    <h2>4. Model endpoint (/api/outside)</h2>
+    <div class="row">
+      <button onclick="modelRecent()">Products.recent</button>
+      <button class="ghost" onclick="modelById()">Products.byId ($param.0)</button>
+      <span id="modelMsg"></span>
+    </div>
+    <pre id="modelOut">($belum dipanggil)</pre>
+  </div>
+</main>
+
+<script type="importmap">
+{ "imports": { "@nxdom/client": "./assets/nxclient/index.js" } }
+</script>
+<script type="module">
+import nxdom, { NxdomApiError } from '@nxdom/client';
+
+const $ = (id) => document.getElementById(id);
+const setMsg = (id, text, ok) => { $(id).innerHTML = `<span class="${ok ? 'ok' : 'err'}">${text}</span>`; };
+
+// ---- 1. List products ----
+window.loadProducts = async function () {
+  $('prodMsg').textContent = 'memuat…';
+  try {
+    const rows = await nxdom.db('products').get();
+    const html = ['<table><tr><th>id</th><th>name</th><th>price</th></tr>',
+      ...rows.map(r => `<tr><td>${r.id}</td><td>${r.name}</td><td>${r.price}</td></tr>`),
+      '</table>'].join('');
+    $('prodTable').innerHTML = html;
+    setMsg('prodMsg', `${rows.length} baris`, true);
+  } catch (e) {
+    setMsg('prodMsg', e instanceof NxdomApiError ? `${e.status}: ${e.message}` : e.message, false);
+  }
+};
+
+// ---- 2. Create product ----
+window.addProduct = async function () {
+  const name = $('pName').value.trim();
+  const price = Number($('pPrice').value);
+  if (!name || !price) { setMsg('addMsg', 'nama & harga wajib', false); return; }
+  try {
+    const created = await nxdom.db('products').create({ name, price });
+    setMsg('addMsg', `tersimpan (id ${created.id ?? '?'})`, true);
+    $('pName').value = ''; $('pPrice').value = '';
+    loadProducts();
+  } catch (e) {
+    setMsg('addMsg', e instanceof NxdomApiError ? `${e.status}: ${e.message}` : e.message, false);
+  }
+};
+
+// ---- 3. Find by id ----
+window.findProduct = async function () {
+  const id = Number($('pId').value);
+  $('findOut').textContent = 'memuat…';
+  try {
+    const row = await nxdom.db('products').find(id);
+    $('findOut').textContent = JSON.stringify(row, null, 2);
+  } catch (e) {
+    $('findOut').textContent = e instanceof NxdomApiError ? `${e.status}: ${e.message}` : e.message;
+  }
+};
+
+// ---- 4. Model endpoint (/api/outside) ----
+// Replika NexaEncrypt.obfuscateJson (utf8 -> XOR -> base64) untuk field `params`.
+class NexaEncrypt {
+  constructor(key = 'nexa-default-secret-key-2025') { this.secretKey = key; }
+  xor(t, k) { let r = ''; for (let i = 0; i < t.length; i++) r += String.fromCharCode(t.charCodeAt(i) ^ k.charCodeAt(i % k.length)); return r; }
+  enc(data) { const j = typeof data === 'string' ? data : JSON.stringify(data); return btoa(this.xor(unescape(encodeURIComponent(j)), this.secretKey)); }
+}
+const enc = new NexaEncrypt();
+
+async function callOutside(model, method, params) {
+  const res = await fetch('/api/outside', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ model, method, params: enc.enc(params ?? []) }),
+  });
+  const body = await res.json();
+  if (!res.ok) throw new NxdomApiError(res.status, body.error ?? 'Request gagal');
+  return body.data;
+}
+
+window.modelRecent = async function () {
+  $('modelOut').textContent = 'memuat…';
+  try { $('modelOut').textContent = JSON.stringify(await callOutside('Products', 'recent'), null, 2); }
+  catch (e) { $('modelOut').textContent = `${e.status ?? ''} ${e.message}`; }
+};
+window.modelById = async function () {
+  $('modelOut').textContent = 'memuat…';
+  try { $('modelOut').textContent = JSON.stringify(await callOutside('Products', 'byId', [Number($('pId').value), { userid: 1 }]), null, 2); }
+  catch (e) { $('modelOut').textContent = `${e.status ?? ''} ${e.message}`; }
+};
+
+// Muat awal
+loadProducts();
+</script>
+</body>
+</html>

@@ -736,6 +736,20 @@ nxdom-php dev myapp --php <path-ke-php.exe>
 
 Command sungguhan adalah **`nxdom-php`** (paket `@nxdom/cli`), bukan `nxdom`/`nxpm` seperti pada konsep §20 — lihat `cli/README.md` untuk referensi lengkap tiap command, termasuk status `dev` yang saat ini diketahui belum berfungsi pasca-migrasi ke native extension (`Plan.md` Bagian 0).
 
+## Quickstart (contoh paling sederhana)
+
+Contoh aplikasi siap-jalan ada di `examples/sdk-demo/` — murni HTML + JS memakai
+SDK `@nxdom/client`, tanpa PHP di webroot:
+
+```bash
+nxdom-php dev examples/sdk-demo --php <path-ke-php.exe>
+```
+
+CLI membangun manifest + tabel sqlite dasar, menjalankan server dev, lalu buka
+URL yang ditampilkan. Aplikasi menunjukkan CRUD tabel `products` (list/create/find)
+dan pemanggilan endpoint model `/api/outside`. Lihat `examples/sdk-demo/README.md`.
+
+
 ---
 
 # 30. Perbedaan dengan Framework PHP

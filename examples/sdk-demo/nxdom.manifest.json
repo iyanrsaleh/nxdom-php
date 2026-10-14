@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "routes": [
+    { "method": "POST", "path": "/api/outside", "resource": "outside", "action": "outside" },
+    { "method": "GET",  "path": "/api/products", "resource": "products", "action": "query" },
+    { "method": "GET",  "path": "/api/products/:id", "resource": "products", "action": "get", "params": ["id"] },
+    { "method": "POST", "path": "/api/products", "resource": "products", "action": "create" },
+    { "method": "PUT",  "path": "/api/products/:id", "resource": "products", "action": "update", "params": ["id"] },
+    { "method": "DELETE", "path": "/api/products/:id", "resource": "products", "action": "delete", "params": ["id"] }
+  ]
+}

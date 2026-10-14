@@ -1,0 +1,24 @@
+{
+  "resources": {
+    "products": {
+      "create": { "fillable": ["name", "price"] },
+      "update": { "fillable": ["name", "price"] }
+    }
+  },
+  "models": {
+    "Products": {
+      "recent": {
+        "table": "products",
+        "select": ["id", "name", "price"],
+        "orderBy": [{ "column": "id", "direction": "desc" }],
+        "limit": 5,
+        "single": false
+      },
+      "byId": {
+        "table": "products",
+        "where": [["id", "=", "$param.0"]],
+        "single": true
+      }
+    }
+  }
+}

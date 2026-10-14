@@ -1,0 +1,16 @@
+{
+  "id": "sdk-demo",
+  "database": {
+    "driver": "sqlite",
+    "path": "storage/sdk-demo.sqlite"
+  },
+  "auth": {
+    "secret": "dev-only-secret-change-me",
+    "sessionTtl": 7200,
+    "table": "users",
+    "identifier": "email",
+    "passwordColumn": "password",
+    "registerFillable": ["name"]
+  },
+  "storage": { "path": "storage" }
+}
