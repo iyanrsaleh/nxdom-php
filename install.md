@@ -10,7 +10,7 @@ Build harus **persis cocok** dengan PHP yang akan menjalankannya, kalau tidak `.
 <path-ke-php.exe> -i
 ```
 
-cari baris `Compiler`, `Thread Safety`, `Architecture`, `PHP Extension Build`. Untuk server rujukan proyek ini (`C:\Tnserver\bin\php\php.exe`):
+cari baris `Compiler`, `Thread Safety`, `Architecture`, `PHP Extension Build`. Untuk server rujukan proyek ini (`D:\server\php\08\php.exe` — lokasi PHP target saat ini; dulu `C:\Tnserver`):
 
 ```
 PHP Version         : 8.1.31
@@ -19,6 +19,8 @@ Architecture         : x64
 Thread Safety        : ZTS (enabled)
 PHP Extension Build  : API20210902,TS,VS16
 ```
+
+> **Bukti ABI (diuji 2026-10-14 pada `D:\server\php\08\php.exe`)**: memuat `.dll` yang dibuild dengan toolset lain (v143/14.44) menghasilkan error persis: `Can't load module ... as it's linked with 14.44, but the core is linked with 14.29`. Jadi `.dll` **wajib** toolset v142 (14.29) — lihat Langkah 1.
 
 ---
 

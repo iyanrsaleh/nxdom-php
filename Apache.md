@@ -2,6 +2,8 @@
 
 Runbook langkah-demi-langkah untuk memasang NxDom (native PHP extension) di server Apache, dari kondisi awal (server PHP+Apache polos, belum ada apa-apa) sampai bisa menjalankan app NxDom sungguhan. Disusun dari langkah nyata yang sudah dijalankan dan diuji terhadap server rujukan (`C:\Tnserver`, Apache 2.4 + PHP 8.1.31 ZTS/VC++2019). Untuk kronologi/riwayat percobaan-gagal dan alasan tiap keputusan, lihat `Plan.md` Bagian 0C–0H — dokumen ini hanya berisi **hasil akhir yang terbukti bekerja**.
 
+> **Update lokasi PHP target (2026-10-14)**: `C:\Tnserver` sudah tidak ada di mesin dev saat ini. PHP target berpindah ke **`D:\server\php\08\php.exe`** (PHP 8.1.31, ZTS, ABI `API20210902,TS,VS16`, module Apache `php8apache2_4.dll` tersedia). Ganti setiap rujukan `C:\Tnserver\bin\php` di bawah dengan `D:\server\php\08`. Bukti ABI: memuat `.dll` toolset v143 ke PHP ini gagal dengan `linked with 14.44, but the core is linked with 14.29` — jadi `.dll` **wajib** dibuild toolset v142 (lihat `install.md` Langkah 1).
+
 Prasyarat sebelum mulai: `php_nxdom.dll` (atau `.so` di Linux) sudah berhasil dibuild — lihat `install.md` untuk proses build native extension-nya.
 
 ---
