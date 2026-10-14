@@ -1,12 +1,5 @@
 # auth-demo — contoh aplikasi NxDom dengan login
 
-> ⚠️ **BELUM BERFUNGSI PENUH** — ada bug terbuka di extension: session login
-> tidak bertahan antar request, sehingga `me` / route `auth:true` balas 401
-> walau sudah login. `register`/`login`/`logout` sendiri berjalan. Lihat
-> `nxdom/README.md` bagian "BUG TERBUKA: session auth tidak persisten".
-> Contoh ini disertakan sebagai referensi API, **bukan** contoh yang siap pakai
-> sampai bug itu diperbaiki.
-
 Aplikasi **murni HTML + JS** memakai SDK `@nxdom/client`, menunjukkan
 authentication NxDom (register / login / me / logout) dan resource yang
 dilindungi (`auth: true`).

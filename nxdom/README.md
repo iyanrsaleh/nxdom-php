@@ -18,17 +18,23 @@ Dua file build system:
 
 > **Build `.dll` untuk PHP VS16/v142**: BuildTools 2022 **tidak** menyediakan v142 (installer: "Cannot find package ... in product graph"). Perlu VS2019 lengkap, VS2022 penuh (via GUI), atau runner `windows-2019`. **Selalu verifikasi folder `VC\Tools\MSVC\14.2*` ada** sebelum build — kalau tidak, `nmake` memakai v143 dan `.dll` gagal di-load PHP VS16. Lihat `install.md` Langkah 1 (bagian "PENTING").
 
-## ⚠️ BUG TERBUKA: session auth tidak persisten (login → `me` gagal)
+## ✅ BUG DIPERBAIKI: session auth tidak persisten (login → `me`) — SELESAI
 
-**Gejala**: `POST /api/auth/login` berhasil (mengembalikan data user), tapi request berikutnya `GET /api/auth/me` (mengirim cookie session) membalas `{"error":"Belum login"}` (401). Route ber-`auth:true` juga menolak.
+**Gejala (dulu)**: `POST /api/auth/login` berhasil, tapi `GET /api/auth/me` berikutnya membalas `{"error":"Belum login"}`; file session (`sess_*`) berukuran 0 byte.
 
-**Bukti**: file session (`/tmp/sess_<id>`) berukuran **0 byte** — `$_SESSION` tidak tersimpan. Padahal replika alur yang sama dalam **PHP murni** (session_name → session_set_cookie_params → session_start → `$_SESSION[...] = ...`) berhasil (file terisi). Jadi logic-nya benar; masalah di **cara extension memanggil** `session_*` via `nxdom_call_function` (kemungkinan urutan/interaksi dengan `auto_globals_jit` — muncul warning "Session ini settings cannot be changed when a session is active").
+**Akar masalah (ditemukan lewat logging ke file)**: `session_start()` **berhasil** (session status aktif), TAPI `$_SESSION` **tidak dimaterialisasi** ke `EG(symbol_table)` ketika `session_start()` dipanggil dari extension (via `nxdom_call_function`). `zend_is_auto_global_str("_SESSION")` **tidak** memicunya (session extension mem-publish `$_SESSION` lewat mekanisme lain, bukan auto-global standar). Akibatnya penulisan `$_SESSION` ke symbol table hilang → tersimpan kosong (0 byte) → login tidak bertahan.
 
-**Sudah dicoba & belum cukup**: (a) `nxdom_session_table()` memakai `nxdom_superglobal("_SESSION")` (paksa materialisasi auto-global); (b) `zend_is_auto_global_str("_SESSION")` setelah `session_start()`. Keduanya arah benar tapi belum menyelesaikan (file session tetap 0 byte).
+**Perbaikan**: baca/tulis `$_SESSION` lewat **userland** (`zend_eval_string`), bukan symbol table langsung:
+- `nxdom_session_set()` → mengeksekusi `$_SESSION['nxdom_user_id'] = <uid>;` di userland.
+- `nxdom_session_get_user_id()` → mengeksekusi `$GLOBALS['__nxdom_sess_uid'] = $_SESSION['nxdom_user_id'] ?? null;` lalu membaca variabel hasil.
+- `nxdom_auth_logout()` → `$_SESSION = [];` lewat userland.
+- `nxdom_session_table()` (cara lama) **dihapus** — tidak dipakai lagi.
 
-**Catatan tambahan**: `php -S` (CLI server) **menggantung** di endpoint `me` karena session file-lock single-thread — pakai FPM (produksi) untuk uji, bukan `php -S`.
+Akses lewat userland membuat session extension mem-publish & sinkron dengan benar. **KEAMANAN**: nilai yang diinterpolasi hanya integer `user_id` (dari DB, bukan input client) + key konstanta internal → tidak ada permukaan injeksi.
 
-**Dampak**: contoh `examples/auth-demo/` belum berfungsi end-to-end (register/login OK, `me`/route terproteksi belum). Endpoint non-auth (`/api/products`, `/api/outside`) **tidak terpengaruh**. Perlu investigasi lanjutan.
+**Diuji nyata (nginx + FPM, PHP 8.3)**: register → login → `me` (**200 data user**) → `/api/secrets` (**200**, route `auth:true`) → logout → `/api/secrets` (**401**). Tanpa login: `me` & `secrets` → **401**. File session kini berisi data. Build Windows & Linux bersih. Non-auth (`/api/products`, `/api/outside`, route halaman) tidak ada regresi.
+
+> **Catatan uji**: `php -S` (CLI server) menggantung di endpoint `me` (session file-lock single-thread) — gunakan FPM untuk menguji fitur session.
 
 ## `_archive-php-package/`
 

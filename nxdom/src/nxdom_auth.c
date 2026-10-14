@@ -84,52 +84,62 @@ static void nxdom_ensure_session_started(nxdom_app_context *ctx)
 	zval start_retval;
 	nxdom_call_function("session_start", 0, NULL, &start_retval);
 	zval_ptr_dtor(&start_retval);
-
-	/* PENTING: paksa $_SESSION masuk ke symbol table SETELAH session_start().
-	 * Dengan auto_globals_jit=On, $_SESSION belum ada di EG(symbol_table)
-	 * sampai diakses — tanpa baris ini, nxdom_session_set() membuat array
-	 * LOKAL sendiri (bukan session storage PHP), sehingga session tersimpan
-	 * KOSONG (file sess_* 0 byte) dan login tidak bertahan antar request. */
-	zend_is_auto_global_str(ZEND_STRL("_SESSION"));
 }
 
-/* $_SESSION diakses lewat EG(symbol_table) (global variable table PHP),
- * BUKAN PS(http_session_vars) — lihat catatan keamanan di atas file ini.
- * Return NULL kalau $_SESSION belum ada / bukan array / key tidak ada. */
-static HashTable *nxdom_session_table(void)
-{
-	/* Paksa materialisasi auto-global & baca via helper (auto_globals_jit=On
-	 * membuat $_SESSION belum ada di EG(symbol_table) sampai diakses). */
-	zval *session_zv = nxdom_superglobal(NXDOM_SESSION_VAR);
-	if (!session_zv) {
-		return NULL;
-	}
-	ZVAL_DEREF(session_zv);
-	return Z_TYPE_P(session_zv) == IS_ARRAY ? Z_ARRVAL_P(session_zv) : NULL;
-}
-
-static zval *nxdom_session_get(const char *key)
-{
-	HashTable *session = nxdom_session_table();
-	return session ? zend_hash_str_find(session, key, strlen(key)) : NULL;
-}
-
+/* Set/ambil $_SESSION lewat USERLAND (zend_eval_string), BUKAN symbol table
+ * langsung. Alasan (bug nyata, ditemukan lewat logging): session extension
+ * PHP mem-publish $_SESSION HANYA saat USERLAND menyentuhnya — memanggil
+ * session_start() dari extension (via nxdom_call_function) TIDAK
+ * mematerialisasi $_SESSION ke EG(symbol_table), sehingga penulisan kita
+ * hilang dan file sess_* jadi 0 byte (login tidak persisten). Mengakses
+ * lewat userland frame membuat session extension publish & sinkron.
+ * KEAMANAN: nilai yang diinterpolasi hanya integer user_id (dari DB, bukan
+ * input client) + key internal konstanta — tidak ada permukaan injeksi. */
 static void nxdom_session_set(const char *key, zval *value)
 {
-	HashTable *session = nxdom_session_table();
-	if (!session) {
-		/* $_SESSION belum ada di symbol table (semestinya sudah dibuat
-		 * session_start() userland di atas) — buat array baru dan
-		 * daftarkan, supaya tetap aman walau urutan pemanggilan berubah. */
-		zval new_session;
-		array_init(&new_session);
-		zend_hash_str_update(&EG(symbol_table), NXDOM_SESSION_VAR, sizeof(NXDOM_SESSION_VAR) - 1, &new_session);
-		session = Z_ARRVAL(new_session);
+	(void) key; /* hanya dipakai untuk NXDOM_SESSION_KEY */
+	zend_long uid = zval_get_long(value);
+	char *code = NULL;
+	spprintf(&code, 0, "$_SESSION[%s] = %ld;", "'" NXDOM_SESSION_KEY "'", uid);
+	if (code) {
+		zval retval;
+		ZVAL_UNDEF(&retval);
+		zend_eval_string(code, &retval, "nxdom_session_set");
+		if (!Z_ISUNDEF(retval)) zval_ptr_dtor(&retval);
+		efree(code);
 	}
+}
 
-	zval value_copy;
-	ZVAL_COPY(&value_copy, value);
-	zend_hash_str_update(session, key, strlen(key), &value_copy);
+/* Ambil user_id dari $_SESSION via userland; return SUCCESS + *out (long)
+ * kalau ada, FAILURE kalau tidak. */
+static zend_result nxdom_session_get_user_id(zend_long *out)
+{
+	/* Simpan ke variabel global lewat userland, lalu baca dari symbol table
+	 * (hindari 'return' di zend_eval_string). */
+	zval retval;
+	ZVAL_UNDEF(&retval);
+	char *code = NULL;
+	spprintf(&code, 0,
+		"$GLOBALS['__nxdom_sess_uid'] = $_SESSION[%s] ?? null;",
+		"'" NXDOM_SESSION_KEY "'");
+	zend_result ok = FAILURE;
+	if (code) {
+		zend_eval_string(code, &retval, "nxdom_session_get");
+		efree(code);
+	}
+	if (!Z_ISUNDEF(retval)) zval_ptr_dtor(&retval);
+
+	zval *uid_zv = zend_hash_str_find(&EG(symbol_table), "__nxdom_sess_uid", sizeof("__nxdom_sess_uid") - 1);
+	if (uid_zv) {
+		ZVAL_DEREF(uid_zv);
+		if (!Z_ISNULL_P(uid_zv)) {
+			*out = zval_get_long(uid_zv);
+			ok = SUCCESS;
+		}
+	}
+	/* Bersihkan variabel global bantu. */
+	zend_hash_str_del(&EG(symbol_table), "__nxdom_sess_uid", sizeof("__nxdom_sess_uid") - 1);
+	return ok;
 }
 
 /* Port dari Auth::publicUser(): buang kolom password dari hasil sebelum
@@ -324,9 +334,12 @@ void nxdom_auth_logout(nxdom_app_context *ctx)
 {
 	nxdom_ensure_session_started(ctx);
 
-	zval empty_session;
-	array_init(&empty_session);
-	zend_hash_str_update(&EG(symbol_table), NXDOM_SESSION_VAR, sizeof(NXDOM_SESSION_VAR) - 1, &empty_session);
+	/* Kosongkan $_SESSION lewat userland (sama alasan seperti session_set),
+	 * lalu hancurkan session. */
+	zval retval;
+	ZVAL_UNDEF(&retval);
+	zend_eval_string("$_SESSION = [];", &retval, "nxdom_session_clear");
+	if (!Z_ISUNDEF(retval)) zval_ptr_dtor(&retval);
 
 	zval destroy_retval;
 	nxdom_call_function("session_destroy", 0, NULL, &destroy_retval);
@@ -337,8 +350,8 @@ zend_result nxdom_auth_me(nxdom_app_context *ctx, zval *pdo, zval *out_user)
 {
 	nxdom_ensure_session_started(ctx);
 
-	zval *user_id = nxdom_session_get(NXDOM_SESSION_KEY);
-	if (!user_id) {
+	zend_long uid;
+	if (nxdom_session_get_user_id(&uid) != SUCCESS) {
 		ZVAL_NULL(out_user);
 		return SUCCESS;
 	}
@@ -352,11 +365,10 @@ zend_result nxdom_auth_me(nxdom_app_context *ctx, zval *pdo, zval *out_user)
 	}
 
 	nxdom_query_builder *qb = nxdom_qb_create(pdo, table);
-	zval id_copy;
-	ZVAL_COPY(&id_copy, user_id);
-	zend_result find_status = nxdom_qb_find(qb, &id_copy, "id", out_user);
+	zval id_zv;
+	ZVAL_LONG(&id_zv, uid);
+	zend_result find_status = nxdom_qb_find(qb, &id_zv, "id", out_user);
 	nxdom_qb_free(qb);
-	zval_ptr_dtor(&id_copy);
 
 	if (find_status != SUCCESS) {
 		return FAILURE;
@@ -371,5 +383,6 @@ zend_result nxdom_auth_me(nxdom_app_context *ctx, zval *pdo, zval *out_user)
 zend_bool nxdom_auth_is_authenticated(nxdom_app_context *ctx)
 {
 	nxdom_ensure_session_started(ctx);
-	return nxdom_session_get(NXDOM_SESSION_KEY) != NULL;
+	zend_long uid;
+	return nxdom_session_get_user_id(&uid) == SUCCESS;
 }
