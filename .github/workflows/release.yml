@@ -1,10 +1,10 @@
 name: Release
 
 # Build artefak siap-pakai saat tag versi (v*) dipush, lalu tempel ke
-# GitHub Release. Cakupan: CLI nxdom-php.exe (Node SEA, butuh Windows x64
-# + Node 22+) dan SDK @nxdom/client (tarball). Extension .so/.dll TIDAK
-# dibuild di sini — keduanya butuh build toolchain C + header PHP/ABI
-# spesifik per versi (lihat install.md); ditempel manual ke Release.
+# GitHub Release. Cakupan: CLI nxdom-php.exe (Node SEA), SDK @nxdom/client
+# (tarball), dan extension .dll Windows (dibuild di runner windows-2019
+# yang punya MSVC v142 / toolset VS16 — lihat install.md Langkah 1).
+# .so (Linux) masih ditempel manual (butuh header PHP/ABI spesifik versi).
 
 on:
   push:
@@ -48,6 +48,60 @@ jobs:
           path: cli/dist/nxdom-php.exe
           if-no-files-found: error
 
+  # Build php_nxdom.dll untuk PHP 8.1.31 ZTS/VS16 menggunakan toolset MSVC
+  # v142 yang tersedia di runner windows-2019 (windows-latest = 2022 tidak
+  # punya v142 — lihat install.md Langkah 1). Menghasilkan .dll dengan ABI
+  # API20210902,TS,VS16 (cocok PHP VS16).
+  build-dll:
+    runs-on: windows-2019
+    steps:
+      - uses: actions/checkout@v4
+
+      # PHP SDK (php-sdk-binary-tools) — branch stabil 2.2.0.
+      - name: Clone PHP SDK
+        shell: cmd
+        run: git clone --branch php-sdk-2.2.0 --depth 1 https://github.com/php/php-sdk-binary-tools.git C:\phpsdk
+
+      # php-src tag persis 8.1.31 (target ABI VS16).
+      - name: Clone php-src 8.1.31
+        shell: cmd
+        run: git clone --branch php-8.1.31 --depth 1 https://github.com/php/php-src.git C:\php-src
+
+      # Buat build tree SDK (vs16/x64) lalu pasang source NxDom dari repo.
+      - name: Siapkan build tree + source NxDom
+        shell: cmd
+        run: |
+          set PATH=C:\phpsdk\bin;%PATH%
+          phpsdk_buildtree.bat phpmaster
+          move C:\php-src C:\phpsdk\phpmaster\vs16\x64\php-src
+          mkdir C:\phpsdk\phpmaster\vs16\x64\php-src\ext\nxdom
+          copy /Y nxdom\src\*.c   C:\phpsdk\phpmaster\vs16\x64\php-src\ext\nxdom\
+          copy /Y nxdom\src\*.h   C:\phpsdk\phpmaster\vs16\x64\php-src\ext\nxdom\
+          copy /Y nxdom\src\config.w32 C:\phpsdk\phpmaster\vs16\x64\php-src\ext\nxdom\
+
+      # Aktifkan toolset v142 (VS2019 runner menyediakannya) lalu build.
+      - name: Build extension (nmake)
+        shell: cmd
+        run: |
+          call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvarsall.bat" x64 -vcvars_ver=14.29
+          set PATH=C:\phpsdk\bin;%PATH%
+          cd /d C:\phpsdk\phpmaster\vs16\x64\php-src
+          buildconf.bat
+          configure --disable-all --enable-cli --enable-nxdom=shared
+          nmake
+
+      # Buktikan .dll termuat oleh php.exe hasil build (bukti ABI cocok).
+      - name: Verifikasi .dll termuat
+        shell: cmd
+        run: |
+          C:\phpsdk\phpmaster\vs16\x64\php-src\x64\Release_TS\php.exe -d extension_dir=C:\phpsdk\phpmaster\vs16\x64\php-src\x64\Release_TS -d extension=php_nxdom.dll -m | findstr /i nxdom
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: php-nxdom-dll
+          path: C:\phpsdk\phpmaster\vs16\x64\php-src\x64\Release_TS\php_nxdom.dll
+          if-no-files-found: error
+
   build-sdk:
     runs-on: ubuntu-latest
     steps:
@@ -71,7 +125,7 @@ jobs:
           if-no-files-found: error
 
   release:
-    needs: [build-exe, build-sdk]
+    needs: [build-exe, build-dll, build-sdk]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/download-artifact@v4
@@ -83,7 +137,7 @@ jobs:
         run: ls -la artifacts
 
       # Buat Release kalau belum ada (tag mendefinisikan nama), lalu
-      # tambahkan artefak. Extension .so/.dll ditempel manual setelah ini.
+      # tambahkan artefak. Extension .so (Linux) ditempel manual setelah ini.
       - name: Buat/perbarui GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
@@ -93,5 +147,6 @@ jobs:
           gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1 \
             || gh release create "$TAG" --repo "$GITHUB_REPOSITORY" \
                  --title "NxDom $TAG" \
-                 --notes "Rilis otomatis $TAG. Artefak CLI (\`.exe\`) dan SDK (\`.tgz\`) dibangun oleh CI; extension \`.so\`/\`.dll\` ditempel manual (lihat install.md)."
+                 --notes "Rilis otomatis $TAG. Artefak CLI (\`.exe\`), extension Windows (\`.dll\`, toolset v142/VS16), dan SDK (\`.tgz\`) dibangun oleh CI; extension \`.so\` Linux ditempel manual (lihat install.md)."
           gh release upload "$TAG" artifacts/* --repo "$GITHUB_REPOSITORY" --clobber
+
