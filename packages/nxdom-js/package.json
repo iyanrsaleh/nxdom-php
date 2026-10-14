@@ -1,6 +1,6 @@
 {
   "name": "@nxdom/client",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "NxDom JS Application API — client SDK, bukan Node.js API (README §14).",
   "type": "module",
   "main": "src/index.js",
