@@ -1,0 +1,11 @@
+{
+  "name": "@nxdom/client",
+  "version": "0.0.1",
+  "description": "NxDom JS Application API — client SDK, bukan Node.js API (README §14).",
+  "type": "module",
+  "main": "src/index.js",
+  "exports": {
+    ".": "./src/index.js"
+  },
+  "license": "MIT"
+}

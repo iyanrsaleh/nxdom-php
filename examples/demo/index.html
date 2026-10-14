@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <!-- Base root: tanpa subfolder deploy; href absolut (/contact/data) tetap ke origin -->
+    <base href="/" />
+    <title>Nxdom</title>
+    <meta name="theme-color" content="#CB2F2F" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="Nxdom" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="stylesheet" href="/assets/css/style.css" />
+    <link rel="icon" href="/assets/images/favicon.ico" />
+    <link rel="apple-touch-icon" href="/assets/images/logo.png" />
+    <script type="importmap">
+      { "imports": { "@nxdom/client": "./assets/nxclient/index.js" } }
+    </script>
+  </head>
+  <body>
+    <header class="site-header" role="banner">
+      <div class="site-header__inner">
+        <p class="site-header__docs">
+          <a href="https://nxdom.org/docs" id="nav-docs">Dokumentasi platform (Web)</a>
+        </p>
+        <div class="site-header__cluster">
+          <p class="site-header__hint">Contoh tautan:</p>
+          <nav class="site-header__nav" aria-label="Navigasi utama">
+            <ul class="site-header__links">
+              <li><a href="/beranda" id="nav-home">Beranda</a></li>
+              <li><a href="/about" id="nav-about">About</a></li>
+              <li><a href="/blog" id="nav-blog">Blog</a></li>
+            </ul>
+          </nav>
+        </div>
+      </div>
+    </header>
+    <!-- Konten route di #main; relatif ke <base href="/"> -->
+    <div id="main">
+      <div class="main-splash">
+        <img
+          class="main-splash__icon"
+          src="/assets/images/nx.png"
+          alt=""
+        />
+      </div>
+    </div>
+    <!-- Konten route dimuat di sini; base URL API di App.js (url → NEXA.url) -->
+    <script type="module" src="./App.js"></script>
+  </body>
+</html>

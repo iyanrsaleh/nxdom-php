@@ -1,0 +1,15 @@
+{
+  "name": "@nxdom/compiler",
+  "version": "0.0.1",
+  "description": "Compiler NxDom: parse app.js, kenali pemanggilan nxdom.* (client SDK), hasilkan nxdom.manifest.json sesuai skema di nxdom/config/manifest.schema.json.",
+  "type": "module",
+  "main": "src/index.js",
+  "bin": {
+    "nxdom-build": "src/cli.js"
+  },
+  "dependencies": {
+    "acorn": "^8.18.0",
+    "acorn-walk": "^8.3.4"
+  },
+  "license": "MIT"
+}

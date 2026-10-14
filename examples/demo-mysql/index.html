@@ -1,0 +1,87 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>NxDom demo</title>
+    <style>
+      body { font-family: system-ui, sans-serif; max-width: 720px; margin: 2rem auto; padding: 0 1rem; }
+      button { margin: 0.25rem 0.25rem 0.25rem 0; padding: 0.4rem 0.8rem; cursor: pointer; }
+      #log { background: #111; color: #0f0; font-family: monospace; font-size: 13px;
+             padding: 1rem; height: 320px; overflow-y: auto; white-space: pre-wrap; border-radius: 6px; }
+      .err { color: #f66; }
+    </style>
+  </head>
+  <body>
+    <h1>NxDom demo app</h1>
+    <p>Semua tombol di bawah memanggil fungsi asli dari <code>app.js</code> (SDK <code>@nxdom/client</code>,
+       lewat native extension NxDom di Apache). Hasilnya tampil di log.</p>
+
+    <div>
+      <button id="btn-list">listActiveUsers()</button>
+      <button id="btn-get">getUser(1)</button>
+      <button id="btn-create">createUser(...)</button>
+      <button id="btn-register-login">registerAndLogin(...)</button>
+      <button id="btn-me">currentUser()</button>
+      <button id="btn-logout">logout()</button>
+      <button id="btn-clear">clear log</button>
+    </div>
+
+    <div id="log"></div>
+
+    <script type="importmap">
+      { "imports": { "@nxdom/client": "./assets/nxclient/index.js" } }
+    </script>
+    <script type="module">
+      import * as app from './app.js';
+
+      const logEl = document.getElementById('log');
+      function log(label, value) {
+        const time = new Date().toLocaleTimeString();
+        const isErr = value instanceof Error;
+        const body = isErr ? `${value.name}: ${value.message}` : JSON.stringify(value, null, 2);
+        const line = document.createElement('div');
+        if (isErr) line.className = 'err';
+        line.textContent = `[${time}] ${label} ->\n${body}\n`;
+        logEl.appendChild(line);
+        logEl.scrollTop = logEl.scrollHeight;
+      }
+
+      async function run(label, fn) {
+        try {
+          const result = await fn();
+          log(label, result);
+        } catch (e) {
+          log(label, e);
+        }
+      }
+
+      document.getElementById('btn-list').onclick = () =>
+        run('listActiveUsers()', () => app.listActiveUsers());
+
+      document.getElementById('btn-get').onclick = () =>
+        run('getUser(1)', () => app.getUser(1));
+
+      document.getElementById('btn-create').onclick = () =>
+        run('createUser(...)', () => app.createUser({
+          name: 'Browser Test',
+          email: `browser-${Date.now()}@example.com`,
+          password: 'secret123',
+        }));
+
+      document.getElementById('btn-register-login').onclick = () =>
+        run('registerAndLogin(...)', () => app.registerAndLogin({
+          email: `login-${Date.now()}@example.com`,
+          password: 'rahasia123',
+          name: 'Login Test',
+        }));
+
+      document.getElementById('btn-me').onclick = () =>
+        run('currentUser()', () => app.currentUser());
+
+      document.getElementById('btn-logout').onclick = () =>
+        run('logout()', () => app.logout());
+
+      document.getElementById('btn-clear').onclick = () => { logEl.textContent = ''; };
+    </script>
+  </body>
+</html>

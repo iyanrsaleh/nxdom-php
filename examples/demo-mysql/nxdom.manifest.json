@@ -1,0 +1,109 @@
+{
+  "version": 1,
+  "routes": [
+    {
+      "method": "GET",
+      "path": "/api/users",
+      "resource": "users",
+      "action": "query",
+      "constraints": {
+        "where": [
+          [
+            "active",
+            "=",
+            true
+          ]
+        ],
+        "orderBy": [
+          {
+            "column": "created_at",
+            "direction": "desc"
+          }
+        ],
+        "limit": 50,
+        "allowClientWhere": [
+          "name",
+          "email"
+        ],
+        "allowClientOrderBy": [
+          "name",
+          "created_at"
+        ],
+        "maxClientLimit": 10
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/api/users/:id",
+      "params": [
+        "id"
+      ],
+      "resource": "users",
+      "action": "get"
+    },
+    {
+      "method": "POST",
+      "path": "/api/users",
+      "resource": "users",
+      "action": "create",
+      "constraints": {
+        "fillable": [
+          "name",
+          "email",
+          "password"
+        ]
+      }
+    },
+    {
+      "method": "PUT",
+      "path": "/api/users/:id",
+      "params": [
+        "id"
+      ],
+      "resource": "users",
+      "action": "update",
+      "auth": true,
+      "constraints": {
+        "fillable": [
+          "name",
+          "email"
+        ]
+      }
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/users/:id",
+      "params": [
+        "id"
+      ],
+      "resource": "users",
+      "action": "delete",
+      "auth": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/auth/register",
+      "resource": "auth",
+      "action": "register"
+    },
+    {
+      "method": "POST",
+      "path": "/api/auth/login",
+      "resource": "auth",
+      "action": "login"
+    },
+    {
+      "method": "GET",
+      "path": "/api/auth/me",
+      "resource": "auth",
+      "action": "me",
+      "auth": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/auth/logout",
+      "resource": "auth",
+      "action": "logout"
+    }
+  ]
+}

@@ -1,0 +1,9 @@
+{
+  "resources": {
+    "items": {
+      "create": {
+        "fillable": ["name"]
+      }
+    }
+  }
+}

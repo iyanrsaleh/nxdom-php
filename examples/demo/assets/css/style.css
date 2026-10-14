@@ -1,0 +1,247 @@
+@import url("../modules/nexa.css");
+
+body {
+  margin: 0;
+  overflow-x: hidden;
+  --nx-readme-accent-dark: #1d4ed8;
+  --nx-readme-bg: #f9fafb;
+  --nx-readme-text: #111827;
+  --nx-readme-muted: #4b5563;
+  --nx-readme-page-gutter-x: clamp(1rem, 4vw, 2.5rem);
+  font-family: 'Source Sans 3', system-ui, sans-serif;
+  color: var(--nx-readme-text);
+  line-height: 1.65;
+  background: var(--nx-readme-bg);
+  width: 100%;
+  max-width: 100%;
+  padding-top: 0;
+  padding-bottom: 0;
+  padding-left: var(--nx-readme-page-gutter-x);
+  padding-right: var(--nx-readme-page-gutter-x);
+}
+
+/* Header situs: dokumentasi + navigasi (di luar #main, tetap tampil tiap route) */
+.site-header {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  background: var(--nx-readme-bg);
+  border-bottom: 1px solid #e5e7eb;
+  margin-left: calc(-1 * var(--nx-readme-page-gutter-x));
+  margin-right: calc(-1 * var(--nx-readme-page-gutter-x));
+  padding: 0.65rem var(--nx-readme-page-gutter-x);
+  box-sizing: border-box;
+}
+
+.site-header__inner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem 1.5rem;
+  max-width: 72rem;
+  margin: 0 auto;
+}
+
+.site-header__docs {
+  margin: 0;
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+
+.site-header__docs a {
+  color: var(--nx-readme-accent-dark, #1d4ed8);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.site-header__docs a:hover {
+  text-decoration: underline;
+}
+
+.site-header__cluster {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 1rem;
+}
+
+.site-header__hint {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--nx-readme-muted, #4b5563);
+}
+
+.site-header__nav {
+  margin: 0;
+}
+
+.site-header__links {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem 1.1rem;
+  align-items: center;
+}
+
+.site-header__links a {
+  color: var(--nx-readme-accent-dark, #1d4ed8);
+  font-weight: 500;
+  text-decoration: none;
+}
+
+.site-header__links a:hover {
+  text-decoration: underline;
+}
+
+/* Splash / beranda: ikon + teks, tengah layar (sisakan ruang header) */
+#main .main-splash {
+  min-height: calc(100vh - 5.5rem);
+  min-height: calc(100dvh - 5.5rem);
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1.25rem;
+  text-align: center;
+  padding: 1rem;
+}
+
+#main .main-splash__icon {
+  width: 70px;
+  height: 70px;
+  border-radius: 8px;
+  object-fit: contain;
+  display: block;
+}
+
+#main .main-splash__headlines {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+#main .main-splash__welcome {
+  font-size: clamp(1.35rem, 3.5vw, 1.85rem);
+  font-weight: 700;
+  margin: 0;
+  line-height: 1.25;
+  letter-spacing: -0.02em;
+}
+
+#main .main-splash__lead {
+  margin: 0;
+  max-width: 56rem;
+  font-size: 1.05rem;
+  line-height: 1.6;
+  color: var(--nx-readme-muted, #4b5563);
+}
+
+/* Halaman konten sederhana (about, blog, …) */
+#main .nx-page {
+  max-width: 42rem;
+  margin: 0 auto;
+  padding: 2rem 0 3rem;
+  box-sizing: border-box;
+}
+
+#main .nx-page__title {
+  font-size: clamp(1.35rem, 3.5vw, 1.75rem);
+  font-weight: 700;
+  margin: 0 0 0.75rem;
+  line-height: 1.25;
+  letter-spacing: -0.02em;
+}
+
+#main .nx-page__subtitle {
+  font-size: 1.125rem;
+  font-weight: 700;
+  margin: 1.25rem 0 0.5rem;
+}
+
+#main .nx-page__lead {
+  margin: 0 0 1rem;
+  color: var(--nx-readme-muted, #4b5563);
+  font-size: 1.05rem;
+  line-height: 1.6;
+}
+
+#main .nx-page__meta {
+  margin: 0 0 0.4rem;
+  font-size: 0.95rem;
+  color: var(--nx-readme-muted, #4b5563);
+}
+
+#main .nx-page__label {
+  font-weight: 600;
+  color: var(--nx-readme-text, #111827);
+  margin-right: 0.35rem;
+}
+
+#main .nx-page__section p {
+  margin: 0;
+  color: var(--nx-readme-muted, #4b5563);
+}
+
+#main .nx-page__rule {
+  border: 0;
+  border-top: 1px solid #e5e7eb;
+  margin: 1.5rem 0;
+}
+
+#main .nx-page a {
+  color: var(--nx-readme-accent-dark, #1d4ed8);
+  font-weight: 500;
+  text-decoration: none;
+}
+
+#main .nx-page a:hover {
+  text-decoration: underline;
+}
+
+#main .nx-page__nav {
+  margin: 0;
+  font-size: 0.95rem;
+}
+
+#main .nx-page__hint {
+  margin: 0.35rem 0 0;
+  font-size: 0.9rem;
+  color: var(--nx-readme-muted, #4b5563);
+}
+
+#main .nx-page__blog-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin: 1.25rem 0 0;
+}
+
+#main .nx-page__blog-card {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+}
+
+#main .nx-page__blog-card-title {
+  font-weight: 600;
+  font-size: 1.05rem;
+  line-height: 1.35;
+}
+
+#main .nx-page__blog-card-img {
+  width: 100%;
+  max-width: 320px;
+  height: auto;
+  border-radius: 8px;
+  display: block;
+}

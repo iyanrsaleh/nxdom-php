@@ -1,0 +1,35 @@
+{
+  "name": "@nxdom/cli",
+  "version": "0.0.1",
+  "description": "nxdom-php — CLI development untuk aplikasi NxDom (create/dev/build). Bernama terpisah dari 'nxdom' karena command itu sudah dipakai nxdom-cli (platform induk, proyek terpisah) di lingkungan dev ini.",
+  "type": "module",
+  "engines": {
+    "node": ">=18"
+  },
+  "bin": {
+    "nxdom-php": "bin/nxdom-php.js"
+  },
+  "main": "src/index.js",
+  "files": [
+    "bin",
+    "src",
+    "templates",
+    "README.md"
+  ],
+  "scripts": {
+    "start": "node bin/nxdom-php.js",
+    "link": "npm link",
+    "build:exe": "node scripts/build-exe.mjs"
+  },
+  "keywords": [
+    "nxdom",
+    "cli",
+    "php",
+    "scaffold"
+  ],
+  "license": "MIT",
+  "devDependencies": {
+    "esbuild": "^0.28.2",
+    "postject": "^1.0.0-alpha.6"
+  }
+}

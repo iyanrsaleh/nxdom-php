@@ -1,0 +1,25 @@
+{
+  "models": {
+    "Users": {
+      "recent": {
+        "table": "users",
+        "select": ["id", "name", "email"],
+        "orderBy": [{ "column": "id", "direction": "desc" }],
+        "limit": 3,
+        "single": false
+      },
+      "byId": {
+        "table": "users",
+        "where": [["id", "=", "$param.0"]],
+        "single": true
+      },
+      "dynamicTable": {
+        "table": "$param.0",
+        "tableParam": true,
+        "allowedTables": ["users"],
+        "limit": 1,
+        "single": true
+      }
+    }
+  }
+}

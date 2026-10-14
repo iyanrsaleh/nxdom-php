@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "routes": [
+    {
+      "method": "POST",
+      "path": "/api/outside",
+      "resource": "outside",
+      "action": "outside"
+    }
+  ]
+}

@@ -1,0 +1,34 @@
+# Dependencies
+node_modules/
+
+# Build outputs (artefak rilis di-attach ke GitHub Release, bukan di-commit)
+cli/dist/
+*.exe
+
+# Installer pihak ketiga (besar, tidak untuk repo)
+install/
+
+# Artefak/kesalahan lokal
+C?Usersianob/
+*.log
+rinit-debug.log
+
+# PHP SDK / build tree (di luar repo — lihat nxdom/README.md)
+nxdom/phpsdk/
+nxdom/_archive-php-package/*/vendor/
+
+# Editor / OS
+.vscode/
+.idea/
+.nxcode/
+Thumbs.db
+.DS_Store
+
+# Konfigurasi dev lokal (jangan commit — lihat cli/README.md)
+.nxdomrc.json
+
+# Data runtime aplikasi (storage sqlite, dsb.)
+examples/*/storage/
+*.sqlite
+*.db
+.local-domain.json

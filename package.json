@@ -1,0 +1,16 @@
+{
+  "name": "nxphp",
+  "version": "1.0.0",
+  "description": "> **Write JavaScript. Run on PHP.**",
+  "main": "index.js",
+  "directories": {
+    "example": "examples"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs"
+}

@@ -1,0 +1,13 @@
+// NxDom — native PHP extension (README §7/§17/§28: "extension=nxdom" di
+// php.ini, tanpa config server tambahan apa pun). Skeleton pertama: cukup
+// untuk membuktikan toolchain build bekerja end-to-end sebelum logika
+// Kernel/Router/Database/Auth (referensi: nxdom/core/*.php di root repo)
+// dipindahkan ke C.
+ARG_ENABLE('nxdom', 'NxDom support', 'no');
+
+if (PHP_NXDOM != 'no') {
+	AC_DEFINE('HAVE_NXDOM', 1, 'NxDom support enabled');
+	EXTENSION('nxdom', 'nxdom.c nxdom_app_context.c nxdom_response.c nxdom_router.c nxdom_call.c nxdom_database.c nxdom_query_builder.c nxdom_auth.c nxdom_kernel.c', null, '/DZEND_ENABLE_STATIC_TSRMLS_CACHE=1');
+	ADD_EXTENSION_DEP('nxdom', 'pdo');
+	ADD_EXTENSION_DEP('nxdom', 'session');
+}

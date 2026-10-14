@@ -1,0 +1,136 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://nxdom.org/schema/manifest.schema.json",
+  "title": "NxDom Manifest",
+  "description": "Kontrak antara compiler NxDom dan Kernel/Router. Dihasilkan oleh `nxdom build` dari analisis app.js, atau ditulis tangan selama M0-M5 sebelum compiler (M6) ada.",
+  "type": "object",
+  "required": ["version", "routes"],
+  "additionalProperties": false,
+  "properties": {
+    "version": {
+      "type": "integer",
+      "const": 1,
+      "description": "Versi skema manifest. Dinaikkan bila ada perubahan tidak-kompatibel-mundur."
+    },
+    "routes": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/route" }
+    }
+  },
+  "definitions": {
+    "route": {
+      "type": "object",
+      "required": ["method", "path", "action"],
+      "additionalProperties": false,
+      "properties": {
+        "method": {
+          "type": "string",
+          "enum": ["GET", "POST", "PUT", "PATCH", "DELETE"]
+        },
+        "path": {
+          "type": "string",
+          "pattern": "^/",
+          "description": "Selalu diawali /api/. Path lain di luar /api/ diserve sebagai file statis biasa, tidak lewat manifest."
+        },
+        "resource": {
+          "type": "string",
+          "description": "Nama resource, untuk action CRUD memetakan langsung ke nama tabel database. Untuk action non-CRUD (mis. auth) berisi nama modul, bukan tabel.",
+          "pattern": "^[a-zA-Z_][a-zA-Z0-9_]*$"
+        },
+        "action": {
+          "type": "string",
+          "enum": ["query", "get", "create", "update", "delete", "login", "logout", "register", "me", "outside", "page"],
+          "description": "query/get/create/update/delete = operasi Database generik atas `resource` sebagai tabel. login/logout/register/me = operasi Auth bawaan NxDom, `resource` diabaikan atau harus \"auth\". outside = dispatch dinamis ke nxdom.policy.json.models berdasarkan {model, method} di body request (jalur model NXUI Storage().models(), lihat Plan_02.md §9) — `resource` harus \"outside\", tidak ada `constraints`/`params` di sini karena resep sesungguhnya dibaca dari policy saat runtime, bukan di-inline ke manifest."
+        },
+        "params": {
+          "type": "array",
+          "description": "Nama parameter path, mis. [\"id\"] untuk /api/users/:id",
+          "items": { "type": "string" }
+        },
+        "page": {
+          "type": "string",
+          "pattern": "^[a-zA-Z0-9_]+$",
+          "description": "Hanya untuk action \"page\": nama file di folder pages/ (tanpa .html), identifier sederhana untuk mencegah path traversal. Contoh: \"about\" -> pages/about.html."
+        },
+        "constraints": { "$ref": "#/definitions/constraints" },
+        "auth": {
+          "type": "boolean",
+          "default": false,
+          "description": "Jika true, request wajib punya session/token valid (dicek Kernel sebelum Router menjalankan action)."
+        }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "action": { "const": "get" } } },
+          "then": { "properties": { "params": { "minItems": 1 } }, "required": ["params"] }
+        },
+        {
+          "if": { "properties": { "action": { "const": "update" } } },
+          "then": { "properties": { "params": { "minItems": 1 } }, "required": ["params"] }
+        },
+        {
+          "if": { "properties": { "action": { "const": "delete" } } },
+          "then": { "properties": { "params": { "minItems": 1 } }, "required": ["params"] }
+        },
+        {
+          "if": { "properties": { "action": { "const": "page" } } },
+          "then": { "required": ["page"] },
+          "else": { "required": ["resource"] }
+        }
+      ]
+    },
+    "constraints": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "where": {
+          "type": "array",
+          "description": "Daftar kondisi WHERE, digabung dengan AND.",
+          "items": {
+            "type": "array",
+            "minItems": 3,
+            "maxItems": 3,
+            "items": [
+              { "type": "string", "description": "nama kolom" },
+              { "type": "string", "enum": ["=", "!=", ">", ">=", "<", "<=", "like", "in"] },
+              { "description": "nilai pembanding (literal, atau \"$param.<nama>\" untuk diisi dari path/query request)" }
+            ]
+          }
+        },
+        "orderBy": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["column", "direction"],
+            "additionalProperties": false,
+            "properties": {
+              "column": { "type": "string" },
+              "direction": { "type": "string", "enum": ["asc", "desc"] }
+            }
+          }
+        },
+        "limit": { "type": "integer", "minimum": 1 },
+        "fillable": {
+          "type": "array",
+          "description": "Untuk action create/update: daftar kolom yang boleh diisi dari request body. Kolom di luar daftar ini ditolak/diabaikan.",
+          "items": { "type": "string" }
+        },
+        "allowClientWhere": {
+          "type": "array",
+          "description": "Whitelist kolom yang boleh di-query TAMBAHAN oleh client lewat query string (mis. ?where=active,=,true), digabung dengan AND terhadap 'where' manifest yang selalu fixed. Tanpa field ini, client tidak boleh menambah where apa pun untuk route ini (M5, lihat Plan.md Bagian 5).",
+          "items": { "type": "string" }
+        },
+        "allowClientOrderBy": {
+          "type": "array",
+          "description": "Whitelist kolom yang boleh dipakai client untuk orderBy tambahan. Bila diisi client, MENGGANTIKAN orderBy manifest (bukan digabung) karena orderBy tidak bisa AND-kan seperti where.",
+          "items": { "type": "string" }
+        },
+        "maxClientLimit": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Batas atas limit yang boleh diminta client lewat query string. limit dari manifest tetap jadi default bila client tidak mengirim apa pun; bila client mengirim, dibatasi min(diminta, maxClientLimit)."
+        }
+      }
+    }
+  }
+}

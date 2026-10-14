@@ -1,0 +1,22 @@
+{
+  "version": 1,
+  "routes": [
+    {
+      "method": "GET",
+      "path": "/api/items",
+      "resource": "items",
+      "action": "query"
+    },
+    {
+      "method": "POST",
+      "path": "/api/items",
+      "resource": "items",
+      "action": "create",
+      "constraints": {
+        "fillable": [
+          "name"
+        ]
+      }
+    }
+  ]
+}

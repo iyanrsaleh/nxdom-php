@@ -1,0 +1,11 @@
+/* ============================================================
+   nexa.css — di-generate nxdom CLI dari modul terinstal
+   updated: 2026-09-14T02:18:36.766Z
+   modules: Route, ServiceWorker, Firebase, Buckets, spinner
+   ============================================================ */
+
+/* Tidak ada CSS modul terinstal — instal modul yang punya .css */
+
+.bold {
+  font-weight: bold;
+}

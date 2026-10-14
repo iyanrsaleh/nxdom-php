@@ -1,0 +1,29 @@
+[
+  {
+    "role": "user",
+    "content": "<user_query>\nhallo bos\n</user_query>"
+  },
+  {
+    "role": "assistant",
+    "content": "Halo, bos! 👋 Siap bantu nih.\n\nBeberapa hal yang bisa saya kerjakan untuk kamu:\n\n- **Bikin project baru** dari nol (web app, script, CLI tool, dsb.)\n- **Baca & jelaskan codebase** yang sudah ada\n- **Perbaiki bug** atau tambah fitur di kode kamu\n- **Refactor** / rapikan struktur proyek\n- **Jawab pertanyaan** teknis seputar coding\n\nSekarang saya lagi di direktori ini:\n\n",
+    "tool_calls": [
+      {
+        "id": "call_dfe9fe582c78422d86b3e940",
+        "function": {
+          "name": "run_terminal_command",
+          "arguments": "{\"command\": \"pwd && ls -a\", \"explanation\": \"Menampilkan direktori kerja saat ini dan isinya supaya user tahu konteks awal\"}"
+        },
+        "type": "function"
+      }
+    ]
+  },
+  {
+    "role": "tool",
+    "tool_call_id": "call_dfe9fe582c78422d86b3e940",
+    "content": "{\"error\": \"Permission denied to execute command: pwd && ls -a\"}"
+  },
+  {
+    "role": "assistant",
+    "content": "Hm, perintah untuk melihat isi folder tidak diizinkan — tidak masalah, saya lewati saja. 😄\n\nJadi, mau ngapain hari ini, bos? Kasih tahu aja project atau masalah yang mau digarap, langsung saya eksekusi. 🚀"
+  }
+]

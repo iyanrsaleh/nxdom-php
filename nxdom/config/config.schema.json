@@ -1,0 +1,54 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://nxdom.org/schema/config.schema.json",
+  "title": "NxDom App Config",
+  "description": "Konfigurasi isolasi per-aplikasi (README §23-24). Diletakkan di document root app sebagai nxdom.config.json, tapi tidak pernah diserve mentah ke browser (lihat Plan.md Bagian 2 poin 4).",
+  "type": "object",
+  "required": ["id", "database"],
+  "additionalProperties": false,
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_-]*$",
+      "description": "Slug unik aplikasi, dipakai sebagai prefix session/cache/storage."
+    },
+    "database": {
+      "type": "object",
+      "required": ["driver"],
+      "additionalProperties": false,
+      "properties": {
+        "driver": { "type": "string", "enum": ["sqlite", "mysql", "pgsql"] },
+        "path": { "type": "string", "description": "Untuk driver sqlite: path file .db, relatif terhadap folder app." },
+        "host": { "type": "string" },
+        "port": { "type": "integer" },
+        "name": { "type": "string" },
+        "user": { "type": "string" },
+        "password": { "type": "string" }
+      }
+    },
+    "auth": {
+      "type": "object",
+      "required": ["table", "identifier", "passwordColumn"],
+      "additionalProperties": false,
+      "properties": {
+        "secret": { "type": "string", "description": "Secret untuk signing token/session, unik per-app." },
+        "sessionTtl": { "type": "integer", "description": "Detik. Default 7200 bila tidak diisi." },
+        "table": { "type": "string", "description": "Nama tabel user untuk register/login, mis. \"users\"." },
+        "identifier": { "type": "string", "description": "Nama kolom identitas login, mis. \"email\"." },
+        "passwordColumn": { "type": "string", "description": "Nama kolom hash password, mis. \"password\"." },
+        "registerFillable": {
+          "type": "array",
+          "description": "Kolom tambahan (di luar identifier & passwordColumn) yang boleh diisi saat register, mis. [\"name\"].",
+          "items": { "type": "string" }
+        }
+      }
+    },
+    "storage": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "path": { "type": "string", "description": "Folder upload/cache app, di luar document root." }
+      }
+    }
+  }
+}

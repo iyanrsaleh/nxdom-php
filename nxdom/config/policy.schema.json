@@ -1,0 +1,138 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://nxdom.org/schema/policy.schema.json",
+  "title": "NxDom Policy",
+  "description": "Kebijakan keamanan per-resource yang TIDAK bisa diturunkan otomatis dari analisis app.js (compiler hanya melihat kode client, sedangkan fillable/whitelist/auth adalah keputusan server). Ditulis manual oleh developer sebagai nxdom.policy.json, digabung oleh compiler (M6) dengan hasil analisis AST untuk membentuk nxdom.manifest.json akhir. Lihat Plan.md Bagian 5 (M6).",
+  "type": "object",
+  "required": ["resources"],
+  "additionalProperties": false,
+  "properties": {
+    "resources": {
+      "type": "object",
+      "description": "Key = nama resource (harus cocok dengan argumen nxdom.db(\"...\") di app.js, atau \"auth\" untuk kebijakan auth).",
+      "additionalProperties": { "$ref": "#/definitions/resourcePolicy" }
+    },
+    "models": {
+      "type": "object",
+      "description": "Named query tetap (jalur /api/outside, kompatibel kontrak NXUI Storage().models(\"Model\", {method, params}) — lihat Plan_02.md §9). Key pertama = nama model (bebas, whitelist implisit lewat pendaftaran di sini), key kedua = nama method. Setiap method adalah RESEP QUERY BUILDER DEKLARATIF, bukan kode — tidak ada eksekusi apa pun di luar QueryBuilder NxDom (README §6).",
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": { "$ref": "#/definitions/modelMethod" }
+      }
+    }
+  },
+  "definitions": {
+    "resourcePolicy": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "query": { "$ref": "#/definitions/actionPolicy" },
+        "get": { "$ref": "#/definitions/actionPolicy" },
+        "create": { "$ref": "#/definitions/actionPolicy" },
+        "update": { "$ref": "#/definitions/actionPolicy" },
+        "delete": { "$ref": "#/definitions/actionPolicy" },
+        "register": { "$ref": "#/definitions/actionPolicy" },
+        "login": { "$ref": "#/definitions/actionPolicy" },
+        "logout": { "$ref": "#/definitions/actionPolicy" },
+        "me": { "$ref": "#/definitions/actionPolicy" }
+      }
+    },
+    "actionPolicy": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "auth": { "type": "boolean", "default": false },
+        "fillable": { "type": "array", "items": { "type": "string" } },
+        "where": {
+          "type": "array",
+          "description": "Constraints where WAJIB dan fixed (tidak bisa di-override client), sama seperti constraints.where manifest.",
+          "items": {
+            "type": "array",
+            "minItems": 3,
+            "maxItems": 3
+          }
+        },
+        "orderBy": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["column", "direction"],
+            "properties": {
+              "column": { "type": "string" },
+              "direction": { "type": "string", "enum": ["asc", "desc"] }
+            }
+          }
+        },
+        "limit": { "type": "integer", "minimum": 1 },
+        "allowClientWhere": { "type": "array", "items": { "type": "string" } },
+        "allowClientOrderBy": { "type": "array", "items": { "type": "string" } },
+        "maxClientLimit": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "modelMethod": {
+      "type": "object",
+      "description": "Resep query builder deklaratif untuk satu {model, method} — dipanggil lewat POST /api/outside dengan body {model, method, params}, kontrak kompatibel NXUI Storage().models(). Lihat Plan_02.md §9.1-9.4 untuk desain lengkap dan alasan tiap aturan keamanan di sini.",
+      "additionalProperties": false,
+      "required": ["table"],
+      "properties": {
+        "table": {
+          "type": "string",
+          "pattern": "^[a-zA-Z_][a-zA-Z0-9_]*$",
+          "description": "Nama tabel FIXED (literal), kecuali tableParam true. Berbeda dari backend lama yang menerima nama tabel apa pun dari input — di sini default-nya selalu string literal di policy, tidak pernah dari client."
+        },
+        "tableParam": {
+          "type": "boolean",
+          "default": false,
+          "description": "true = nilai 'table' di atas diperlakukan sebagai placeholder $param.N (client memilih tabel secara dinamis). WAJIB disertai allowedTables — tanpa itu compiler menolak build (lihat Plan_02.md §9.2, mencegah client memilih tabel arbitrer)."
+        },
+        "allowedTables": {
+          "type": "array",
+          "items": { "type": "string", "pattern": "^[a-zA-Z_][a-zA-Z0-9_]*$" },
+          "minItems": 1,
+          "description": "Whitelist tertutup nama tabel yang boleh dipilih client saat tableParam true. Wajib ada dan tidak boleh kosong jika tableParam true."
+        },
+        "select": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Daftar kolom SELECT. Default '*' jika tidak diisi."
+        },
+        "where": {
+          "type": "array",
+          "description": "Kondisi WHERE tetap. Tiap item [column, operator, value] — value berupa literal dari policy, atau placeholder string \"$auth.userId\" (diisi dari userid yang disisipkan NexaStorage.js ke dalam params, lihat Plan_02.md §9.4) atau \"$param.N\" (diisi dari params[N] sebagai BINDING, tidak pernah interpolasi string mentah).",
+          "items": {
+            "type": "array",
+            "minItems": 3,
+            "maxItems": 3
+          }
+        },
+        "orderBy": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["column", "direction"],
+            "properties": {
+              "column": { "type": "string" },
+              "direction": { "type": "string", "enum": ["asc", "desc"] }
+            }
+          }
+        },
+        "limit": { "type": "integer", "minimum": 1 },
+        "groupBy": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "single": {
+          "type": "boolean",
+          "default": false,
+          "description": "true = kembalikan satu objek (setara QueryBuilder::first(), null jika tidak ada baris). false = kembalikan array (setara ::get())."
+        }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "tableParam": { "const": true } } },
+          "then": { "required": ["table", "tableParam", "allowedTables"] }
+        }
+      ]
+    }
+  }
+}
