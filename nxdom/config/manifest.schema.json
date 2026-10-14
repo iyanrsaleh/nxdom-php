@@ -30,7 +30,7 @@
         "path": {
           "type": "string",
           "pattern": "^/",
-          "description": "Selalu diawali /api/. Path lain di luar /api/ diserve sebagai file statis biasa, tidak lewat manifest."
+          "description": "Path absolut diawali '/'. Route /api/* di-dispatch ke action API; path lain (mis. /about) hanya valid untuk action \"page\". Segmen terakhir boleh '*' (mis. \"/help/*\") untuk PREFIX match: segmen pertama = halaman, sisa segmen jadi parameter (terbaca di client via location.pathname)."
         },
         "resource": {
           "type": "string",

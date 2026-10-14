@@ -72,8 +72,13 @@ function validateManifest(array $manifest, string $file): array
         }
 
         // Path: /api/* untuk action API; path lain hanya valid untuk "page".
+        // Segmen terakhir '*' = prefix match, hanya boleh untuk action "page".
         if (isset($route['path'])) {
             $isApiPath = strpos($route['path'], '/api/') === 0;
+            $isPrefix = substr($route['path'], -2) === '/*';
+            if ($isPrefix && $action !== 'page') {
+                $errors[] = "$ctx: path prefix '/*' hanya valid untuk action 'page'";
+            }
             if (!$isApiPath && $action !== 'page') {
                 $errors[] = "$ctx: path non-/api/ ('{$route['path']}') hanya valid untuk action 'page'";
             }

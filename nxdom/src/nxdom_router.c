@@ -93,7 +93,20 @@ int nxdom_router_match(
 		size_t route_seg_lens[NXDOM_MAX_SEGMENTS];
 		int route_seg_count = nxdom_path_segments(route_path_buf, route_segments, route_seg_lens);
 
-		if (route_seg_count != path_seg_count) {
+		/* Prefix match: segmen terakhir route = '*' (mis. "/help/*").
+		 * Route cocok kalau segmen-segmen sebelum '*' adalah AWALAN path
+		 * (path boleh lebih panjang); sisa segmen jadi params. Lihat
+		 * nxdom/README.md "route halaman prefix". */
+		int is_prefix = route_seg_count > 0
+			&& route_seg_lens[route_seg_count - 1] == 1
+			&& route_segments[route_seg_count - 1][0] == '*';
+		int match_count = is_prefix ? route_seg_count - 1 : route_seg_count;
+
+		if (is_prefix) {
+			if (path_seg_count < match_count) {
+				continue;
+			}
+		} else if (route_seg_count != path_seg_count) {
 			continue;
 		}
 
@@ -101,7 +114,7 @@ int nxdom_router_match(
 		array_init(&params);
 		int is_match = 1;
 
-		for (int i = 0; i < route_seg_count; i++) {
+		for (int i = 0; i < match_count; i++) {
 			if (route_segments[i][0] == ':') {
 				zend_string *param_name = zend_string_init(
 					route_segments[i] + 1, route_seg_lens[i] - 1, 0
@@ -121,6 +134,20 @@ int nxdom_router_match(
 			) {
 				is_match = 0;
 				break;
+			}
+		}
+
+		/* Sisa segmen (prefix) → params numerik 0,1,... + "rest" (gabungan
+		 * dengan '/'). Halaman statis membacanya dari location.pathname
+		 * di client; param di sini berguna untuk handler non-page juga. */
+		if (is_match && is_prefix) {
+			zend_long rest_idx = 0;
+			for (int i = match_count; i < path_seg_count; i++) {
+				zend_string *seg = zend_string_init(path_segments[i], path_seg_lens[i], 0);
+				zval seg_zv;
+				ZVAL_STR(&seg_zv, seg);
+				add_index_zval(&params, (zend_ulong) rest_idx, &seg_zv);
+				rest_idx++;
 			}
 		}
 
