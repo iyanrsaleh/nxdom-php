@@ -22,6 +22,20 @@ Arsip implementasi **PHP package** (M0-M7, sebelum keputusan beralih ke native C
 
 **Tidak dipakai runtime** — disimpan sebagai referensi porting (setiap fungsi C di native extension punya padanan langsung di sini yang bisa dibaca untuk memahami logic aslinya sebelum ditulis ulang ke C).
 
+## Rencana: route halaman prefix (`/help/*`) — segmen pertama = page (SUDAH DIEKSEKUSI ✅)
+
+**Masalah**: route halaman (`action: "page"`) hanya cocok **exact**. `/help/data/demo3/dll` tidak match `/help`, sehingga jatuh ke SPA fallback (`index.html`) — tertahan/menyesatkan. Diinginkan: **segmen pertama** (`help`) = page, **sisanya** (`data/demo3/dll`) = parameter yang diteruskan (terbaca di halaman via `location.pathname`).
+
+**Desain**:
+- Route ditulis `"path": "/help/*"` — segmen terakhir `*` = prefix match.
+- `nxdom_router_match()`: bila segmen terakhir route adalah `*`, route cocok kalau segmen-segmen sebelum `*` adalah **awalan** path (path boleh lebih panjang). Sisa segmen dikumpulkan ke `out_params` sebagai `0`,`1`,… (numerik) + `"rest"` (string gabungan).
+- Handler page (`nxdom_handle_page`) tetap serve `pages/help.html`; halaman statis membaca sisa path dari `location.pathname` di client (tanpa perlu server var tambahan).
+- `*` hanya valid sebagai segmen **terakhir**; validasi di schema/validator.
+
+**Perubahan file**: `nxdom_router.c` (`nxdom_router_match`), `manifest.schema.json` + `scripts/validate-manifest.php` (izinkan `*` di akhir path), manifest demo (`/help/*`, `/about/*`).
+
+**Status**: ✅ dieksekusi & diuji (`/help/data/demo3/dll` → serve `pages/help.html`).
+
 ## Rencana: route halaman (`action: "page"`) di router NxDom (SUDAH DIEKSEKUSI ✅)
 
 **Masalah**: halaman non-`/api` (mis. `/about`, `/help`) saat ini **tidak** ditangani router NxDom — `nxdom_kernel_handle()` hanya memproses path berawalan `/api/`, sisanya diserahkan ke SPA fallback front controller. User ingin `/about` & `/help` menjadi **rute NxDom sungguhan** yang di-serve extension, bukan dirender client.

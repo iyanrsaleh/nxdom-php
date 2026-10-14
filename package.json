@@ -1,6 +1,6 @@
 {
   "name": "nxdom-php",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "Write JavaScript. Run on PHP. NxDom runtime sebagai PHP native extension - satu install di server, semua aplikasi langsung punya router/database/auth.",
   "private": true,
   "directories": {

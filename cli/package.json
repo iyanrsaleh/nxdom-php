@@ -1,6 +1,6 @@
 {
   "name": "@nxdom/cli",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "nxdom-php — CLI development untuk aplikasi NxDom (create/dev/build). Bernama terpisah dari 'nxdom' karena command itu sudah dipakai nxdom-cli (platform induk, proyek terpisah) di lingkungan dev ini.",
   "type": "module",
   "engines": {
