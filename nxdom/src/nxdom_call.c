@@ -24,8 +24,10 @@ zval *nxdom_superglobal(const char *name)
 	} else if (strcmp(name, "_ENV") == 0) {
 		track = TRACK_VARS_ENV;
 	} else {
-		/* Selain superglobal utama (mis. $_SESSION yang di-manage
-		 * session extension): fallback ke symbol table. */
+		/* Selain superglobal utama (mis. $_SESSION yang di-manage session
+		 * extension): paksa materialisasi dulu (auto_globals_jit juga
+		 * berlaku untuk $_SESSION), lalu baca dari symbol table. */
+		zend_is_auto_global_str((char *) name, strlen(name));
 		zval *zv = zend_hash_str_find(&EG(symbol_table), name, strlen(name));
 		return (zv && Z_TYPE_P(zv) == IS_ARRAY) ? zv : NULL;
 	}

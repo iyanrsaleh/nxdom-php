@@ -18,6 +18,18 @@ Dua file build system:
 
 > **Build `.dll` untuk PHP VS16/v142**: BuildTools 2022 **tidak** menyediakan v142 (installer: "Cannot find package ... in product graph"). Perlu VS2019 lengkap, VS2022 penuh (via GUI), atau runner `windows-2019`. **Selalu verifikasi folder `VC\Tools\MSVC\14.2*` ada** sebelum build — kalau tidak, `nmake` memakai v143 dan `.dll` gagal di-load PHP VS16. Lihat `install.md` Langkah 1 (bagian "PENTING").
 
+## ⚠️ BUG TERBUKA: session auth tidak persisten (login → `me` gagal)
+
+**Gejala**: `POST /api/auth/login` berhasil (mengembalikan data user), tapi request berikutnya `GET /api/auth/me` (mengirim cookie session) membalas `{"error":"Belum login"}` (401). Route ber-`auth:true` juga menolak.
+
+**Bukti**: file session (`/tmp/sess_<id>`) berukuran **0 byte** — `$_SESSION` tidak tersimpan. Padahal replika alur yang sama dalam **PHP murni** (session_name → session_set_cookie_params → session_start → `$_SESSION[...] = ...`) berhasil (file terisi). Jadi logic-nya benar; masalah di **cara extension memanggil** `session_*` via `nxdom_call_function` (kemungkinan urutan/interaksi dengan `auto_globals_jit` — muncul warning "Session ini settings cannot be changed when a session is active").
+
+**Sudah dicoba & belum cukup**: (a) `nxdom_session_table()` memakai `nxdom_superglobal("_SESSION")` (paksa materialisasi auto-global); (b) `zend_is_auto_global_str("_SESSION")` setelah `session_start()`. Keduanya arah benar tapi belum menyelesaikan (file session tetap 0 byte).
+
+**Catatan tambahan**: `php -S` (CLI server) **menggantung** di endpoint `me` karena session file-lock single-thread — pakai FPM (produksi) untuk uji, bukan `php -S`.
+
+**Dampak**: contoh `examples/auth-demo/` belum berfungsi end-to-end (register/login OK, `me`/route terproteksi belum). Endpoint non-auth (`/api/products`, `/api/outside`) **tidak terpengaruh**. Perlu investigasi lanjutan.
+
 ## `_archive-php-package/`
 
 Arsip implementasi **PHP package** (M0-M7, sebelum keputusan beralih ke native C extension — lihat `Plan.md` Bagian 0/0B untuk riwayat kenapa). Berisi `Kernel.php`/`Router.php`/`Database.php`/`Auth.php`/dll versi PHP murni, `bootstrap.php` (untuk `auto_prepend_file`), `router.php` (untuk `php -S`), `front.php` (versi awal front controller sebelum jadi `index.php`).

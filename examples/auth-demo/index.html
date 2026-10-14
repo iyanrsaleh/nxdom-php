@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NxDom Auth Demo</title>
+<style>
+  :root { --bg:#0f1115; --card:#1a1d24; --fg:#e6e8ec; --mut:#9aa3b2; --acc:#6ea8fe; --ok:#2fbf71; --err:#e5534b; }
+  * { box-sizing:border-box; }
+  body { margin:0; font:15px/1.6 system-ui,Segoe UI,Roboto,sans-serif; background:var(--bg); color:var(--fg); }
+  header { padding:20px; border-bottom:1px solid #262a33; display:flex; justify-content:space-between; align-items:center; }
+  h1 { margin:0; font-size:19px; }
+  #whoami { font-size:13px; color:var(--mut); }
+  main { max-width:820px; margin:0 auto; padding:18px; display:grid; gap:14px; }
+  .card { background:var(--card); border:1px solid #262a33; border-radius:12px; padding:16px; }
+  .card h2 { margin:0 0 10px; font-size:15px; color:var(--acc); }
+  .row { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+  button { background:var(--acc); color:#0b1020; border:0; border-radius:8px; padding:8px 12px; font-weight:600; cursor:pointer; }
+  button.ghost { background:#232733; color:var(--fg); }
+  input { background:#11141a; border:1px solid #2b303b; color:var(--fg); border-radius:8px; padding:8px; }
+  pre { background:#0b0e13; border:1px solid #22262f; border-radius:8px; padding:12px; overflow:auto; font-size:12.5px; margin:10px 0 0; }
+  .ok { color:var(--ok); } .err { color:var(--err); }
+  .hidden { display:none; }
+</style>
+</head>
+<body>
+<header>
+  <h1>NxDom Auth Demo</h1>
+  <div id="whoami">belum login</div>
+</header>
+<main>
+  <!-- Belum login -->
+  <div class="card" id="authCard">
+    <h2>Register / Login</h2>
+    <div class="row">
+      <input id="aName" placeholder="nama" style="width:150px">
+      <input id="aEmail" placeholder="email" style="width:200px">
+      <input id="aPass" type="password" placeholder="password" style="width:150px">
+    </div>
+    <div class="row" style="margin-top:8px">
+      <button onclick="doRegister()">Register</button>
+      <button onclick="doLogin()">Login</button>
+      <span id="authMsg"></span>
+    </div>
+  </div>
+
+  <!-- Sudah login -->
+  <div class="card hidden" id="sessionCard">
+    <h2>Session</h2>
+    <div class="row">
+      <button class="ghost" onclick="refreshMe()">Me</button>
+      <button class="ghost" onclick="doLogout()">Logout</button>
+      <span id="sessMsg"></span>
+    </div>
+    <pre id="meOut">($belum dipanggil)</pre>
+  </div>
+
+  <!-- Resource terproteksi -->
+  <div class="card">
+    <h2>Data terproteksi (butuh login)</h2>
+    <p style="color:var(--mut); font-size:13px; margin:0 0 8px">
+      Route <code>/api/secrets</code> di manifest punya <code>auth: true</code> — gagal 401 kalau belum login.
+    </p>
+    <div class="row">
+      <button onclick="loadSecrets()">Muat secrets</button>
+      <span id="secMsg"></span>
+    </div>
+    <pre id="secOut">($belum dipanggil)</pre>
+  </div>
+</main>
+
+<script type="importmap">
+{ "imports": { "@nxdom/client": "./assets/nxclient/index.js" } }
+</script>
+<script type="module">
+import nxdom, { NxdomApiError } from '@nxdom/client';
+
+const $ = (id) => document.getElementById(id);
+const msg = (id, text, ok) => { $(id).innerHTML = `<span class="${ok ? 'ok' : 'err'}">${text}</span>`; };
+const apiErr = (e) => e instanceof NxdomApiError ? `${e.status}: ${e.message}` : e.message;
+
+function showSession(loggedIn) {
+  $('authCard').classList.toggle('hidden', loggedIn);
+  $('sessionCard').classList.toggle('hidden', !loggedIn);
+}
+
+window.doRegister = async function () {
+  try {
+    await nxdom.auth.register({ name: $('aName').value, email: $('aEmail').value, password: $('aPass').value });
+    msg('authMsg', 'terdaftar — silakan login', true);
+  } catch (e) { msg('authMsg', apiErr(e), false); }
+};
+
+window.doLogin = async function () {
+  try {
+    await nxdom.auth.login({ email: $('aEmail').value, password: $('aPass').value });
+    msg('authMsg', 'login berhasil', true);
+    await refreshMe();
+  } catch (e) { msg('authMsg', apiErr(e), false); }
+};
+
+window.doLogout = async function () {
+  try {
+    await nxdom.auth.logout();
+    $('whoami').textContent = 'belum login';
+    $('meOut').textContent = '($belum dipanggil)';
+    showSession(false);
+    msg('authMsg', 'logout', true);
+  } catch (e) { msg('sessMsg', apiErr(e), false); }
+};
+
+window.refreshMe = async function () {
+  try {
+    const me = await nxdom.auth.me();
+    $('whoami').textContent = `login: ${me?.['email'] ?? me?.['name'] ?? 'user'}`;
+    $('meOut').textContent = JSON.stringify(me, null, 2);
+    showSession(true);
+  } catch (e) {
+    $('whoami').textContent = 'belum login';
+    showSession(false);
+  }
+};
+
+window.loadSecrets = async function () {
+  $('secOut').textContent = 'memuat…';
+  try {
+    const rows = await nxdom.db('secrets').get();
+    $('secOut').textContent = JSON.stringify(rows, null, 2);
+    msg('secMsg', `${rows.length} baris`, true);
+  } catch (e) {
+    $('secOut').textContent = apiErr(e);
+    msg('secMsg', apiErr(e), false);
+  }
+};
+
+// Cek sesi awal
+refreshMe();
+</script>
+</body>
+</html>

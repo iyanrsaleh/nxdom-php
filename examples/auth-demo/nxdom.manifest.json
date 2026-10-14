@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "routes": [
+    { "method": "POST", "path": "/api/auth/register", "resource": "auth", "action": "register" },
+    { "method": "POST", "path": "/api/auth/login", "resource": "auth", "action": "login" },
+    { "method": "POST", "path": "/api/auth/logout", "resource": "auth", "action": "logout" },
+    { "method": "GET",  "path": "/api/auth/me", "resource": "auth", "action": "me" },
+
+    { "method": "GET", "path": "/api/secrets", "resource": "secrets", "action": "query", "auth": true }
+  ]
+}

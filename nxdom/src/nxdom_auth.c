@@ -84,6 +84,13 @@ static void nxdom_ensure_session_started(nxdom_app_context *ctx)
 	zval start_retval;
 	nxdom_call_function("session_start", 0, NULL, &start_retval);
 	zval_ptr_dtor(&start_retval);
+
+	/* PENTING: paksa $_SESSION masuk ke symbol table SETELAH session_start().
+	 * Dengan auto_globals_jit=On, $_SESSION belum ada di EG(symbol_table)
+	 * sampai diakses — tanpa baris ini, nxdom_session_set() membuat array
+	 * LOKAL sendiri (bukan session storage PHP), sehingga session tersimpan
+	 * KOSONG (file sess_* 0 byte) dan login tidak bertahan antar request. */
+	zend_is_auto_global_str(ZEND_STRL("_SESSION"));
 }
 
 /* $_SESSION diakses lewat EG(symbol_table) (global variable table PHP),
@@ -91,7 +98,9 @@ static void nxdom_ensure_session_started(nxdom_app_context *ctx)
  * Return NULL kalau $_SESSION belum ada / bukan array / key tidak ada. */
 static HashTable *nxdom_session_table(void)
 {
-	zval *session_zv = zend_hash_str_find(&EG(symbol_table), NXDOM_SESSION_VAR, sizeof(NXDOM_SESSION_VAR) - 1);
+	/* Paksa materialisasi auto-global & baca via helper (auto_globals_jit=On
+	 * membuat $_SESSION belum ada di EG(symbol_table) sampai diakses). */
+	zval *session_zv = nxdom_superglobal(NXDOM_SESSION_VAR);
 	if (!session_zv) {
 		return NULL;
 	}
