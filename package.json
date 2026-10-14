@@ -1,16 +1,30 @@
 {
-  "name": "nxphp",
-  "version": "1.0.0",
-  "description": "> **Write JavaScript. Run on PHP.**",
-  "main": "index.js",
+  "name": "nxdom-php",
+  "version": "0.0.2",
+  "description": "Write JavaScript. Run on PHP. NxDom runtime sebagai PHP native extension - satu install di server, semua aplikasi langsung punya router/database/auth.",
+  "private": true,
   "directories": {
     "example": "examples"
   },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "node cli/compiler/test/test-compiler.mjs",
+    "test:e2e": "node packages/nxdom-js/test/manual-e2e.mjs"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "type": "commonjs"
+  "keywords": [
+    "php",
+    "extension",
+    "nxdom",
+    "runtime",
+    "sdk",
+    "no-node-in-production"
+  ],
+  "author": "Abdul Maskhur Saleh (Iyan R Saleh) <ian.obet@gmail.com>",
+  "license": "MIT",
+  "type": "commonjs",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/iyanrsaleh/nxdom-php.git"
+  },
+  "homepage": "https://github.com/iyanrsaleh/nxdom-php#readme",
+  "bugs": "https://github.com/iyanrsaleh/nxdom-php/issues"
 }
