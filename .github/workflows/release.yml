@@ -1,0 +1,97 @@
+name: Release
+
+# Build artefak siap-pakai saat tag versi (v*) dipush, lalu tempel ke
+# GitHub Release. Cakupan: CLI nxdom-php.exe (Node SEA, butuh Windows x64
+# + Node 22+) dan SDK @nxdom/client (tarball). Extension .so/.dll TIDAK
+# dibuild di sini — keduanya butuh build toolchain C + header PHP/ABI
+# spesifik per versi (lihat install.md); ditempel manual ke Release.
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  build-exe:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      # Build nxdom-php.exe: butuh dependency di cli/ (esbuild, postject)
+      # DAN di cli/compiler/ (acorn, acorn-walk — di-bundle ke dalam .exe).
+      - name: Install dependencies (cli)
+        working-directory: cli
+        run: npm install
+
+      - name: Install dependencies (compiler)
+        working-directory: cli/compiler
+        run: npm install
+
+      - name: Build nxdom-php.exe
+        working-directory: cli
+        run: npm run build:exe
+
+      - name: Verifikasi .exe berjalan
+        working-directory: cli
+        run: .\dist\nxdom-php.exe 2>&1 | Select-Object -First 3
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: nxdom-php-exe
+          path: cli/dist/nxdom-php.exe
+          if-no-files-found: error
+
+  build-sdk:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Package @nxdom/client
+        run: |
+          set -euo pipefail
+          VERSION=$(node -p "require('./packages/nxdom-js/package.json').version")
+          STAGE=$(mktemp -d)
+          mkdir -p "$STAGE/package"
+          cp packages/nxdom-js/package.json "$STAGE/package/"
+          cp -r packages/nxdom-js/src "$STAGE/package/"
+          tar -czf "nxdom-client-${VERSION}.tgz" -C "$STAGE" package
+          echo "SDK_TARBALL=nxdom-client-${VERSION}.tgz" >> "$GITHUB_ENV"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: nxdom-client
+          path: nxdom-client-*.tgz
+          if-no-files-found: error
+
+  release:
+    needs: [build-exe, build-sdk]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          merge-multiple: true
+
+      - name: Daftar artefak
+        run: ls -la artifacts
+
+      # Buat Release kalau belum ada (tag mendefinisikan nama), lalu
+      # tambahkan artefak. Extension .so/.dll ditempel manual setelah ini.
+      - name: Buat/perbarui GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          TAG="${GITHUB_REF_NAME}"
+          gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1 \
+            || gh release create "$TAG" --repo "$GITHUB_REPOSITORY" \
+                 --title "NxDom $TAG" \
+                 --notes "Rilis otomatis $TAG. Artefak CLI (\`.exe\`) dan SDK (\`.tgz\`) dibangun oleh CI; extension \`.so\`/\`.dll\` ditempel manual (lihat install.md)."
+          gh release upload "$TAG" artifacts/* --repo "$GITHUB_REPOSITORY" --clobber

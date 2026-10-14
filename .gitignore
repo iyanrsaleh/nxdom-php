@@ -32,3 +32,8 @@ examples/*/storage/
 *.sqlite
 *.db
 .local-domain.json
+Plan.md
+Plan_01.md
+Plan_02.md
+AGENTS.md
+Catatanku.md
