@@ -124,8 +124,51 @@ jobs:
           path: nxdom-client-*.tgz
           if-no-files-found: error
 
+  # Build nxdom.so (Linux) via phpize. PHP versi build di-PIN (8.3) supaya
+  # ABI yang dihasilkan konsisten & dapat didokumentasikan — .so hanya
+  # cocok untuk PHP versi/thread-safety yang sama (lihat install.md).
+  build-so:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        php: ['8.3']
+    steps:
+      - uses: actions/checkout@v4
+
+      # phpize + php-config + header PHP dev disediakan setup-php.
+      - name: Setup PHP ${{ matrix.php }}
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          tools: none
+
+      - name: Build nxdom.so
+        run: |
+          set -euo pipefail
+          mkdir -p build-so
+          cp nxdom/src/*.c nxdom/src/*.h nxdom/src/config.m4 build-so/
+          cd build-so
+          phpize
+          ./configure --with-php-config="$(which php-config)"
+          make
+
+      - name: Verifikasi .so termuat
+        run: |
+          set -euo pipefail
+          php -d extension="$PWD/build-so/modules/nxdom.so" -r 'echo extension_loaded("nxdom") ? "nxdom OK\n" : "GAGAL\n";'
+          php -d extension="$PWD/build-so/modules/nxdom.so" -r 'echo nxdom_version(), "\n";'
+
+      - name: Ganti nama sesuai versi PHP
+        run: cp build-so/modules/nxdom.so "nxdom-php${{ matrix.php }}.so"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: nxdom-so-php${{ matrix.php }}
+          path: nxdom-php${{ matrix.php }}.so
+          if-no-files-found: error
+
   release:
-    needs: [build-exe, build-dll, build-sdk]
+    needs: [build-exe, build-dll, build-so, build-sdk]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/download-artifact@v4
@@ -137,7 +180,7 @@ jobs:
         run: ls -la artifacts
 
       # Buat Release kalau belum ada (tag mendefinisikan nama), lalu
-      # tambahkan artefak. Extension .so (Linux) ditempel manual setelah ini.
+      # tambahkan SEMUA artefak yang dibangun job-job di atas.
       - name: Buat/perbarui GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
@@ -147,6 +190,6 @@ jobs:
           gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1 \
             || gh release create "$TAG" --repo "$GITHUB_REPOSITORY" \
                  --title "NxDom $TAG" \
-                 --notes "Rilis otomatis $TAG. Artefak CLI (\`.exe\`), extension Windows (\`.dll\`, toolset v142/VS16), dan SDK (\`.tgz\`) dibangun oleh CI; extension \`.so\` Linux ditempel manual (lihat install.md)."
+                 --notes "Rilis otomatis $TAG. Semua artefak dibangun oleh CI: CLI (\`.exe\`), extension Windows (\`.dll\`, v142/VS16), extension Linux (\`.so\`, PHP 8.3), dan SDK (\`.tgz\`). Lihat install.md untuk detail ABI/versi."
           gh release upload "$TAG" artifacts/* --repo "$GITHUB_REPOSITORY" --clobber
 
